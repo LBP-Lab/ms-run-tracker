@@ -204,6 +204,11 @@
 
     <section class="controls">
       <input id="searchBox" type="text" placeholder="Search sample, user, operator, method, experiment..." />
+
+      <select id="instrumentFilter">
+        <option value="All">All instruments</option>
+      </select>
+
       <select id="statusFilter">
         <option value="All">All statuses</option>
         <option value="Completed">Completed</option>
@@ -369,13 +374,27 @@
     function renderTable() {
       const search = document.getElementById("searchBox").value.toLowerCase();
       const status = document.getElementById("statusFilter").value;
+      const instrument = document.getElementById("instrumentFilter").value;
 
       const filtered = runs.filter(run => {
         const allText = Object.values(run).join(" ").toLowerCase();
         const matchesSearch = allText.includes(search);
         const matchesStatus = status === "All" || run.status === status;
-        return matchesSearch && matchesStatus;
+        const matchesInstrument = instrument === "All" || run.instrument === instrument;
+        return matchesSearch && matchesStatus && matchesInstrument;
       });
+
+      const instruments = [...new Set(runs.map(r => r.instrument).filter(Boolean))];
+
+      const instrumentSelect = document.getElementById("instrumentFilter");
+      const currentValue = instrumentSelect.value;
+
+      instrumentSelect.innerHTML = '<option value="All">All instruments</option>' +
+        instruments.map(inst => `<option value="${inst}">${inst}</option>`).join('');
+
+      if (instruments.includes(currentValue)) {
+        instrumentSelect.value = currentValue;
+      }
 
       renderDashboard(filtered);
 
@@ -408,6 +427,7 @@
 
     document.getElementById("searchBox").addEventListener("input", renderTable);
     document.getElementById("statusFilter").addEventListener("change", renderTable);
+    document.getElementById("instrumentFilter").addEventListener("change", renderTable);
 
     loadSheetData();
     setInterval(loadSheetData, 60000);
