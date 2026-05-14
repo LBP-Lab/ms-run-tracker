@@ -159,8 +159,14 @@
 
     .progressbar > div {
       height: 100%;
-      background: var(--blue);
+      transition: width 0.3s ease;
     }
+
+    .progress-completed { background: var(--green); }
+    .progress-running { background: var(--orange); }
+    .progress-next { background: var(--blue); }
+    .progress-queued { background: var(--gray); }
+    .progress-failed { background: var(--red); }
 
     .note {
       margin-top: 16px;
@@ -368,7 +374,7 @@
           <td><span class="badge ${statusClass(run.status)}">${run.status}</span></td>
           <td>
             ${run.progressText}
-            <div class="progressbar"><div style="width:${run.progressPercent}%"></div></div>
+            <div class="progressbar"><div class="progress-${statusClass(run.status)}" style="width:${run.progressPercent}%"></div></div>
           </td>
           <td>${run.estimatedEnd}</td>
           <td>${run.operator}</td>
