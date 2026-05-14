@@ -311,7 +311,9 @@
             dataFolder: cols[8] || "",
             status: cols[9] || "Queued",
             progressText: cols[10] || "",
-            progressPercent: Number(cols[11]) || 0,
+            progressPercent: (Number(String(cols[11] || "0").replace("%", "")) <= 1)
+              ? Number(String(cols[11] || "0").replace("%", "")) * 100
+              : Number(String(cols[11] || "0").replace("%", "")),
             estimatedEnd: cols[12] || "",
             operator: cols[13] || "",
             user: cols[14] || "",
