@@ -49,6 +49,60 @@
       margin: auto;
     }
 
+    .instrument-status {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .status-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px 20px;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+      border-left: 8px solid var(--gray);
+    }
+
+    .status-card h3 {
+      margin: 0 0 8px;
+      font-size: 18px;
+    }
+
+    .status-pill {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 999px;
+      color: white;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .status-card p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .machine-running { border-left-color: var(--green); }
+    .machine-idle { border-left-color: var(--blue); }
+    .machine-maintenance { border-left-color: #eab308; }
+    .machine-troubleshooting { border-left-color: var(--orange); }
+    .machine-down { border-left-color: var(--red); }
+    .machine-calibration { border-left-color: #8b5cf6; }
+    .machine-cleaning { border-left-color: #06b6d4; }
+
+    .pill-running { background: var(--green); }
+    .pill-idle { background: var(--blue); }
+    .pill-maintenance { background: #eab308; }
+    .pill-troubleshooting { background: var(--orange); }
+    .pill-down { background: var(--red); }
+    .pill-calibration { background: #8b5cf6; }
+    .pill-cleaning { background: #06b6d4; }
+    .pill-default { background: var(--gray); }
+
     .dashboard {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -183,6 +237,8 @@
   </header>
 
   <main>
+    <section class="instrument-status" id="instrumentStatusCards"></section>
+
     <section class="dashboard">
       <div class="card">
         <h3>Completed batches</h3>
@@ -265,6 +321,9 @@
     ];
 
     let runs = [];
+    let instrumentStatuses = [];
+
+    const statusSheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvmDuu6qWOvoRoTYRmlYzKBaxLlUH47I0C4uyNnByi21rJYxi_UyJYAB2JiUCsLH2sVxWhHQ92M1oE/pub?gid=573698020&single=true&output=csv";
 
     function parseCSV(text) {
       const rows = [];
@@ -302,6 +361,51 @@
       }
 
       return rows;
+    }
+
+    async function loadInstrumentStatus() {
+      try {
+        const separator = statusSheetURL.includes("?") ? "&" : "?";
+        const response = await fetch(statusSheetURL + separator + "cacheBust=" + Date.now());
+        const csv = await response.text();
+        const rows = parseCSV(csv);
+
+        instrumentStatuses = rows.slice(1)
+          .filter(cols => cols.some(cell => cell && cell.trim() !== ""))
+          .map(cols => ({
+            instrument: cols[0] || "",
+            status: cols[1] || "Idle",
+            comments: cols[2] || ""
+          }));
+
+        renderInstrumentStatus();
+      } catch (error) {
+        console.error("Could not load instrument status sheet:", error);
+      }
+    }
+
+    function machineStatusClass(status) {
+      const normalized = String(status || "").toLowerCase().replaceAll(" ", "-");
+      if (["running", "idle", "maintenance", "troubleshooting", "down", "calibration", "cleaning"].includes(normalized)) {
+        return normalized;
+      }
+      return "default";
+    }
+
+    function renderInstrumentStatus() {
+      const container = document.getElementById("instrumentStatusCards");
+      if (!container) return;
+
+      container.innerHTML = instrumentStatuses.map(item => {
+        const cls = machineStatusClass(item.status);
+        return `
+          <div class="status-card machine-${cls}">
+            <h3>${item.instrument}</h3>
+            <span class="status-pill pill-${cls}">${item.status}</span>
+            <p>${item.comments || "No comments"}</p>
+          </div>
+        `;
+      }).join("");
     }
 
     async function loadSheetData() {
@@ -439,7 +543,9 @@
     document.getElementById("statusFilter").addEventListener("change", renderTable);
     document.getElementById("instrumentFilter").addEventListener("change", renderTable);
 
+    loadInstrumentStatus();
     loadSheetData();
+    setInterval(loadInstrumentStatus, 60000);
     setInterval(loadSheetData, 60000);
   </script>
 </body>
