@@ -160,12 +160,13 @@
     .progressbar > div {
       height: 100%;
       transition: width 0.3s ease;
+      border-radius: 999px;
     }
 
     .progress-completed { background: var(--green); }
-    .progress-running { background: var(--orange); }
-    .progress-next { background: var(--blue); }
-    .progress-queued { background: var(--gray); }
+    .progress-running { background: linear-gradient(90deg, #f59e0b, #f97316); }
+    .progress-next { background: #d1d5db; }
+    .progress-queued { background: #d1d5db; }
     .progress-failed { background: var(--red); }
 
     .note {
