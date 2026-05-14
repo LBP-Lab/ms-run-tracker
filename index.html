@@ -253,9 +253,15 @@
   </main>
 
   <script>
-    const sheetURLs = [
-      "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvmDuu6qWOvoRoTYRmlYzKBaxLlUH47I0C4uyNnByi21rJYxi_UyJYAB2JiUCsLH2sVxWhHQ92M1oE/pub?output=csv",
-      "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvmDuu6qWOvoRoTYRmlYzKBaxLlUH47I0C4uyNnByi21rJYxi_UyJYAB2JiUCsLH2sVxWhHQ92M1oE/pub?gid=92196191&single=true&output=csv"
+    const sheetSources = [
+      {
+        instrument: "timsTOF",
+        url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvmDuu6qWOvoRoTYRmlYzKBaxLlUH47I0C4uyNnByi21rJYxi_UyJYAB2JiUCsLH2sVxWhHQ92M1oE/pub?output=csv"
+      },
+      {
+        instrument: "Orbitrap Eclipse",
+        url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvmDuu6qWOvoRoTYRmlYzKBaxLlUH47I0C4uyNnByi21rJYxi_UyJYAB2JiUCsLH2sVxWhHQ92M1oE/pub?gid=92196191&single=true&output=csv"
+      }
     ];
 
     let runs = [];
@@ -302,18 +308,22 @@
       try {
         const allRows = [];
 
-        for (const url of sheetURLs) {
-          const separator = url.includes("?") ? "&" : "?";
-          const response = await fetch(url + separator + "cacheBust=" + Date.now());
+        for (const source of sheetSources) {
+          const separator = source.url.includes("?") ? "&" : "?";
+          const response = await fetch(source.url + separator + "cacheBust=" + Date.now());
           const csv = await response.text();
           const rows = parseCSV(csv);
-          allRows.push(...rows.slice(1));
+
+          rows.slice(1).forEach(row => {
+            row.sourceInstrument = source.instrument;
+            allRows.push(row);
+          });
         }
 
         runs = allRows
           .filter(cols => cols.some(cell => cell && cell.trim() !== ""))
           .map(cols => ({
-            instrument: cols[0] || "",
+            instrument: cols.sourceInstrument || cols[0] || "",
             batch: cols[1] || "",
             sampleName: cols[2] || "",
             sampleType: cols[3] || "",
