@@ -248,7 +248,10 @@
   </main>
 
   <script>
-    const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvmDuu6qWOvoRoTYRmlYzKBaxLlUH47I0C4uyNnByi21rJYxi_UyJYAB2JiUCsLH2sVxWhHQ92M1oE/pub?output=csv";
+    const sheetURLs = [
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvmDuu6qWOvoRoTYRmlYzKBaxLlUH47I0C4uyNnByi21rJYxi_UyJYAB2JiUCsLH2sVxWhHQ92M1oE/pub?output=csv",
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvmDuu6qWOvoRoTYRmlYzKBaxLlUH47I0C4uyNnByi21rJYxi_UyJYAB2JiUCsLH2sVxWhHQ92M1oE/pub?gid=92196191&single=true&output=csv"
+    ];
 
     let runs = [];
 
@@ -292,12 +295,17 @@
 
     async function loadSheetData() {
       try {
-        const response = await fetch(sheetURL + "&cacheBust=" + Date.now());
-        const csv = await response.text();
-        const rows = parseCSV(csv);
-        const dataRows = rows.slice(1);
+        const allRows = [];
 
-        runs = dataRows
+        for (const url of sheetURLs) {
+          const separator = url.includes("?") ? "&" : "?";
+          const response = await fetch(url + separator + "cacheBust=" + Date.now());
+          const csv = await response.text();
+          const rows = parseCSV(csv);
+          allRows.push(...rows.slice(1));
+        }
+
+        runs = allRows
           .filter(cols => cols.some(cell => cell && cell.trim() !== ""))
           .map(cols => ({
             instrument: cols[0] || "",
@@ -341,6 +349,14 @@
       if (normalized === "next") return "next";
       if (normalized === "failed") return "failed";
       return "queued";
+    };
+
+    const progressColor = status => {
+      const normalized = String(status || "").toLowerCase();
+      if (normalized === "completed") return "#16a34a";
+      if (normalized === "running") return "#f97316";
+      if (normalized === "failed") return "#dc2626";
+      return "#d1d5db";
     };
 
     function renderDashboard(filteredRuns) {
