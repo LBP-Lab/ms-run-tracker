@@ -440,16 +440,14 @@
             dataFolder: cols[9] || "",
             status: cols[10] || "Queued",
             progressText: cols[11] || "",
-            progressPercent: (Number(String(cols[12] || "0").replace("%", "")) <= 1)
-              ? Number(String(cols[12] || "0").replace("%", "")) * 100
-              : Number(String(cols[12] || "0").replace("%", "")),
+            progressPercent: Number(String(cols[12] || "0").replace("%","")),
             estimatedEnd: cols[13] || "",
             operator: cols[14] || "",
             user: cols[15] || "",
             solventChange: cols[16] || "",
             calibration: cols[17] || "",
             dataSearch: cols[18] || "",
-            comments: cols[19] || ""
+            comments: cols[19] || 
           }));
 
         renderTable();
