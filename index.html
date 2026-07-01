@@ -1,4 +1,23 @@
-<!DOCTYPE html>
+instrument: cols.sourceInstrument || cols[0] || "",
+date: cols[1] || "",
+batch: cols[2] || "",
+sampleName: cols[3] || "",
+sampleType: cols[4] || "",
+experiment: cols[5] || "",
+samples: cols[6] || "0",
+lcMethod: cols[7] || "",
+msMethod: cols[8] || "",
+dataFolder: cols[9] || "",
+status: cols[10] || "Queued",
+progressText: cols[11] || "",
+progressPercent: Number(String(cols[12] || "0").replace("%", "")),
+estimatedEnd: cols[13] || "",
+operator: cols[14] || "",
+user: cols[15] || "",
+solventChange: cols[16] || "",
+calibration: cols[17] || "",
+dataSearch: cols[18] || "",
+comments: cols[19] || ""<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -429,25 +448,25 @@
           .filter(cols => cols.some(cell => cell && cell.trim() !== ""))
           .map(cols => ({
             instrument: cols.sourceInstrument || cols[0] || "",
-            date: cols[1] || "",
-            batch: cols[2] || "",
-            sampleName: cols[3] || "",
-            sampleType: cols[4] || "",
-            experiment: cols[5] || "",
-            samples: cols[6] || "0",
-            lcMethod: cols[7] || "",
-            msMethod: cols[8] || "",
-            dataFolder: cols[9] || "",
-            status: cols[10] || "Queued",
-            progressText: cols[11] || "",
-            progressPercent: Number(String(cols[12] || "0").replace("%","")),
-            estimatedEnd: cols[13] || "",
-            operator: cols[14] || "",
-            user: cols[15] || "",
-            solventChange: cols[16] || "",
-            calibration: cols[17] || "",
-            dataSearch: cols[18] || "",
-            comments: cols[19] || ""
+date: cols[1] || "",
+batch: cols[2] || "",
+sampleName: cols[3] || "",
+sampleType: cols[4] || "",
+experiment: cols[5] || "",
+samples: cols[6] || "0",
+lcMethod: cols[7] || "",
+msMethod: cols[8] || "",
+dataFolder: cols[9] || "",
+status: cols[10] || "Queued",
+progressText: cols[11] || "",
+progressPercent: Number(String(cols[12] || "0").replace("%", "")),
+estimatedEnd: cols[13] || "",
+operator: cols[14] || "",
+user: cols[15] || "",
+solventChange: cols[16] || "",
+calibration: cols[17] || "",
+dataSearch: cols[18] || "",
+comments: cols[19] || ""
           }));
 
         renderTable();
