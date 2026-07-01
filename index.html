@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LBPlab_MassSpec_Run_Tracker</title>
+  <title>LBPlab Mass Spec Run Tracker</title>
   <style>
     :root {
       --bg: #f6f8fb;
@@ -16,6 +16,8 @@
       --orange: #f97316;
       --gray: #64748b;
       --red: #dc2626;
+      --purple: #8b5cf6;
+      --cyan: #06b6d4;
     }
 
     * { box-sizing: border-box; }
@@ -70,6 +72,12 @@
       font-size: 18px;
     }
 
+    .status-card p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
     .status-pill {
       display: inline-block;
       padding: 5px 10px;
@@ -80,27 +88,21 @@
       margin-bottom: 8px;
     }
 
-    .status-card p {
-      margin: 4px 0 0;
-      color: var(--muted);
-      font-size: 14px;
-    }
-
     .machine-running { border-left-color: var(--green); }
     .machine-idle { border-left-color: var(--blue); }
     .machine-maintenance { border-left-color: #eab308; }
     .machine-troubleshooting { border-left-color: var(--orange); }
     .machine-down { border-left-color: var(--red); }
-    .machine-calibration { border-left-color: #8b5cf6; }
-    .machine-cleaning { border-left-color: #06b6d4; }
+    .machine-calibration { border-left-color: var(--purple); }
+    .machine-cleaning { border-left-color: var(--cyan); }
 
     .pill-running { background: var(--green); }
     .pill-idle { background: var(--blue); }
     .pill-maintenance { background: #eab308; }
     .pill-troubleshooting { background: var(--orange); }
     .pill-down { background: var(--red); }
-    .pill-calibration { background: #8b5cf6; }
-    .pill-cleaning { background: #06b6d4; }
+    .pill-calibration { background: var(--purple); }
+    .pill-cleaning { background: var(--cyan); }
     .pill-default { background: var(--gray); }
 
     .dashboard {
@@ -163,7 +165,7 @@
     table {
       width: 100%;
       border-collapse: collapse;
-      min-width: 1300px;
+      min-width: 1200px;
     }
 
     th, td {
@@ -184,6 +186,25 @@
 
     tr:hover {
       background: #f9fafb;
+    }
+
+    .batch-button {
+      border: none;
+      background: transparent;
+      color: var(--blue);
+      font-weight: 700;
+      cursor: pointer;
+      padding: 0;
+      font-size: 14px;
+      text-align: left;
+    }
+
+    .batch-button:hover { text-decoration: underline; }
+
+    .small-muted {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 3px;
     }
 
     .badge {
@@ -208,20 +229,60 @@
       border-radius: 999px;
       overflow: hidden;
       margin-top: 6px;
-      width: 140px;
+      width: 150px;
     }
 
     .progressbar > div {
       height: 100%;
-      transition: width 0.3s ease;
       border-radius: 999px;
     }
 
     .progress-completed { background: var(--green); }
     .progress-running { background: linear-gradient(90deg, #f59e0b, #f97316); }
-    .progress-next { background: #d1d5db; }
-    .progress-queued { background: #d1d5db; }
+    .progress-next, .progress-queued { background: #d1d5db; }
     .progress-failed { background: var(--red); }
+
+    .details-row { background: #f8fafc; }
+
+    .details-panel {
+      padding: 18px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      margin: 8px 0;
+    }
+
+    .details-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 14px;
+    }
+
+    .details-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+    }
+
+    .detail-item {
+      border-bottom: 1px solid #f1f5f9;
+      padding-bottom: 8px;
+    }
+
+    .detail-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+    }
+
+    .detail-value {
+      font-size: 14px;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
 
     .note {
       margin-top: 16px;
@@ -230,10 +291,11 @@
     }
   </style>
 </head>
+
 <body>
   <header>
     <h1>LBPlab_MassSpec_Run_Tracker</h1>
-    <p>Live-style dashboard for completed, running, and queued LC-MS samples</p>
+    <p>Click a batch name to view all run details</p>
   </header>
 
   <main>
@@ -259,7 +321,7 @@
     </section>
 
     <section class="controls">
-      <input id="searchBox" type="text" placeholder="Search sample, user, operator, method, experiment..." />
+      <input id="searchBox" type="text" placeholder="Search batch, sample, user, operator, method, experiment..." />
 
       <select id="instrumentFilter">
         <option value="All">All instruments</option>
@@ -283,21 +345,15 @@
             <th>Date</th>
             <th>Batch</th>
             <th>Sample Name</th>
-            <th>Sample Type</th>
             <th>Experiment</th>
             <th>No. Samples</th>
             <th>LC Method</th>
             <th>MS Method</th>
-            <th>Data Folder</th>
             <th>Status</th>
             <th>Progress</th>
             <th>Estimated End</th>
-            <th>Operator</th>
             <th>User</th>
-            <th>Solvent Change</th>
-            <th>Calibration</th>
-            <th>Data Search</th>
-            <th>Comments</th>
+            <th>Data Folder</th>
           </tr>
         </thead>
         <tbody id="runTable"></tbody>
@@ -305,7 +361,7 @@
     </section>
 
     <p class="note">
-      This webpage reads live data from your published Google Sheet and refreshes automatically every 60 seconds.
+      Data are read from the published Google Sheet and refresh automatically every 60 seconds.
     </p>
   </main>
 
@@ -321,10 +377,11 @@
       }
     ];
 
+    const statusSheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvmDuu6qWOvoRoTYRmlYzKBaxLlUH47I0C4uyNnByi21rJYxi_UyJYAB2JiUCsLH2sVxWhHQ92M1oE/pub?gid=573698020&single=true&output=csv";
+
     let runs = [];
     let instrumentStatuses = [];
-
-    const statusSheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvmDuu6qWOvoRoTYRmlYzKBaxLlUH47I0C4uyNnByi21rJYxi_UyJYAB2JiUCsLH2sVxWhHQ92M1oE/pub?gid=573698020&single=true&output=csv";
+    let openBatchKey = "";
 
     function parseCSV(text) {
       const rows = [];
@@ -341,10 +398,10 @@
           i++;
         } else if (char === '"') {
           inQuotes = !inQuotes;
-        } else if (char === ',' && !inQuotes) {
+        } else if (char === "," && !inQuotes) {
           row.push(value.trim());
           value = "";
-        } else if ((char === String.fromCharCode(10) || char === String.fromCharCode(13)) && !inQuotes) {
+        } else if ((char === "\n" || char === "\r") && !inQuotes) {
           if (value || row.length) {
             row.push(value.trim());
             rows.push(row);
@@ -362,6 +419,73 @@
       }
 
       return rows;
+    }
+
+    function escapeHTML(value) {
+      return String(value || "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function normalizeStatus(status) {
+      const value = String(status || "").trim();
+      if (!value) return "Queued";
+      return value.charAt(0).toUpperCase() + value.slice(1);
+    }
+
+    function statusClass(status) {
+      const normalized = String(status || "").toLowerCase();
+      if (normalized === "completed") return "completed";
+      if (normalized === "running") return "running";
+      if (normalized === "next") return "next";
+      if (normalized === "failed") return "failed";
+      return "queued";
+    }
+
+    function machineStatusClass(status) {
+      const normalized = String(status || "").toLowerCase().replaceAll(" ", "-");
+      if (["running", "idle", "maintenance", "troubleshooting", "down", "calibration", "cleaning"].includes(normalized)) {
+        return normalized;
+      }
+      return "default";
+    }
+
+    function parsePercent(value) {
+      const number = Number(String(value || "0").replace("%", "").trim());
+      if (!Number.isFinite(number)) return 0;
+      return number <= 1 ? number * 100 : number;
+    }
+
+    function rowToRun(cols, sourceInstrument) {
+      return {
+        instrument: sourceInstrument || cols[0] || "",
+        date: cols[1] || "",
+        batch: cols[2] || "",
+        sampleName: cols[3] || "",
+        sampleType: cols[4] || "",
+        experiment: cols[5] || "",
+        samples: cols[6] || "0",
+        lcMethod: cols[7] || "",
+        msMethod: cols[8] || "",
+        dataFolder: cols[9] || "",
+        status: normalizeStatus(cols[10] || "Queued"),
+        progressText: cols[11] || "",
+        progressPercent: parsePercent(cols[12]),
+        estimatedEnd: cols[13] || "",
+        operator: cols[14] || "",
+        user: cols[15] || "",
+        solventChange: cols[16] || "",
+        calibration: cols[17] || "",
+        dataSearch: cols[18] || "",
+        comments: cols[19] || ""
+      };
+    }
+
+    function makeBatchKey(run, index) {
+      return [index, run.instrument, run.batch, run.sampleName].join("||");
     }
 
     async function loadInstrumentStatus() {
@@ -385,33 +509,9 @@
       }
     }
 
-    function machineStatusClass(status) {
-      const normalized = String(status || "").toLowerCase().replaceAll(" ", "-");
-      if (["running", "idle", "maintenance", "troubleshooting", "down", "calibration", "cleaning"].includes(normalized)) {
-        return normalized;
-      }
-      return "default";
-    }
-
-    function renderInstrumentStatus() {
-      const container = document.getElementById("instrumentStatusCards");
-      if (!container) return;
-
-      container.innerHTML = instrumentStatuses.map(item => {
-        const cls = machineStatusClass(item.status);
-        return `
-          <div class="status-card machine-${cls}">
-            <h3>${item.instrument}</h3>
-            <span class="status-pill pill-${cls}">${item.status}</span>
-            <p>${item.comments || "No comments"}</p>
-          </div>
-        `;
-      }).join("");
-    }
-
     async function loadSheetData() {
       try {
-        const allRows = [];
+        const allRuns = [];
 
         for (const source of sheetSources) {
           const separator = source.url.includes("?") ? "&" : "?";
@@ -419,70 +519,88 @@
           const csv = await response.text();
           const rows = parseCSV(csv);
 
-          rows.slice(1).forEach(row => {
-            row.sourceInstrument = source.instrument;
-            allRows.push(row);
-          });
+          rows.slice(1)
+            .filter(cols => cols.some(cell => cell && cell.trim() !== ""))
+            .forEach(cols => allRuns.push(rowToRun(cols, source.instrument)));
         }
 
-        runs = allRows
-          .filter(cols => cols.some(cell => cell && cell.trim() !== ""))
-          .map(cols => ({
-            instrument: cols.sourceInstrument || cols[0] || "",
-date: cols[1] || "",
-batch: cols[2] || "",
-sampleName: cols[3] || "",
-sampleType: cols[4] || "",
-experiment: cols[5] || "",
-samples: cols[6] || "0",
-lcMethod: cols[7] || "",
-msMethod: cols[8] || "",
-dataFolder: cols[9] || "",
-status: cols[10] || "Queued",
-progressText: cols[11] || "",
-progressPercent: Number(String(cols[12] || "0").replace("%", "")),
-estimatedEnd: cols[13] || "",
-operator: cols[14] || "",
-user: cols[15] || "",
-solventChange: cols[16] || "",
-calibration: cols[17] || "",
-dataSearch: cols[18] || "",
-comments: cols[19] || ""
-          }));
-
+        runs = allRuns;
         renderTable();
       } catch (error) {
         console.error("Could not load Google Sheet:", error);
-        document.getElementById("runTable").innerHTML = `
-          <tr>
-            <td colspan="19">Could not load Google Sheet data. Please check that the sheet is published to web as CSV.</td>
-          </tr>
-        `;
+        document.getElementById("runTable").innerHTML = '<tr><td colspan="13">Could not load Google Sheet data.</td></tr>';
       }
     }
 
-    const statusClass = status => {
-      const normalized = String(status || "").toLowerCase();
-      if (normalized === "completed") return "completed";
-      if (normalized === "running") return "running";
-      if (normalized === "next") return "next";
-      if (normalized === "failed") return "failed";
-      return "queued";
-    };
-
-    const progressColor = status => {
-      const normalized = String(status || "").toLowerCase();
-      if (normalized === "completed") return "#16a34a";
-      if (normalized === "running") return "#f97316";
-      if (normalized === "failed") return "#dc2626";
-      return "#d1d5db";
-    };
+    function renderInstrumentStatus() {
+      const container = document.getElementById("instrumentStatusCards");
+      container.innerHTML = instrumentStatuses.map(item => {
+        const cls = machineStatusClass(item.status);
+        return `
+          <div class="status-card machine-${cls}">
+            <h3>${escapeHTML(item.instrument)}</h3>
+            <span class="status-pill pill-${cls}">${escapeHTML(item.status)}</span>
+            <p>${escapeHTML(item.comments || "No comments")}</p>
+          </div>
+        `;
+      }).join("");
+    }
 
     function renderDashboard(filteredRuns) {
-      document.getElementById("completedCount").textContent = filteredRuns.filter(r => r.status === "Completed").length;
-      document.getElementById("runningCount").textContent = filteredRuns.filter(r => r.status === "Running").length;
-      document.getElementById("queueCount").textContent = filteredRuns.filter(r => ["Next", "Queued"].includes(r.status)).length;
-      document.getElementById("sampleCount").textContent = filteredRuns.reduce((sum, r) => sum + Number(r.samples || 0), 0);
+      document.getElementById("completedCount").textContent =
+        filteredRuns.filter(r => r.status.toLowerCase() === "completed").length;
+
+      document.getElementById("runningCount").textContent =
+        filteredRuns.filter(r => r.status.toLowerCase() === "running").length;
+
+      document.getElementById("queueCount").textContent =
+        filteredRuns.filter(r => ["next", "queued"].includes(r.status.toLowerCase())).length;
+
+      document.getElementById("sampleCount").textContent =
+        filteredRuns.reduce((sum, r) => sum + Number(r.samples || 0), 0);
+    }
+
+    function detailItem(label, value) {
+      return `
+        <div class="detail-item">
+          <div class="detail-label">${escapeHTML(label)}</div>
+          <div class="detail-value">${escapeHTML(value || "-")}</div>
+        </div>
+      `;
+    }
+
+    function detailsHTML(run) {
+      return `
+        <tr class="details-row">
+          <td colspan="13">
+            <div class="details-panel">
+              <div class="details-title">${escapeHTML(run.batch || "Run details")}</div>
+              <div class="details-grid">
+                ${detailItem("Instrument", run.instrument)}
+                ${detailItem("Date", run.date)}
+                ${detailItem("Batch", run.batch)}
+                ${detailItem("Sample Name", run.sampleName)}
+                ${detailItem("Sample Type", run.sampleType)}
+                ${detailItem("Experiment", run.experiment)}
+                ${detailItem("No. Samples", run.samples)}
+                ${detailItem("LC Method", run.lcMethod)}
+                ${detailItem("MS Method", run.msMethod)}
+                ${detailItem("Data Folder", run.dataFolder)}
+                ${detailItem("Status", run.status)}
+                ${detailItem("Progress", run.progressText)}
+                ${detailItem("Progress %", run.progressPercent + "%")}
+                ${detailItem("Estimated End", run.estimatedEnd)}
+                ${detailItem("Operator", run.operator)}
+                ${detailItem("User", run.user)}
+                ${detailItem("Solvent Change", run.solventChange)}
+                ${detailItem("Calibration", run.calibration)}
+                ${detailItem("Data Search", run.dataSearch)}
+                ${detailItem("Comments", run.comments)}
+              </div>
+            </div>
+          </td>
+        </tr>
+      `;
     }
 
     function renderTable() {
@@ -493,18 +611,17 @@ comments: cols[19] || ""
       const filtered = runs.filter(run => {
         const allText = Object.values(run).join(" ").toLowerCase();
         const matchesSearch = allText.includes(search);
-        const matchesStatus = status === "All" || run.status === status;
+        const matchesStatus = status === "All" || run.status.toLowerCase() === status.toLowerCase();
         const matchesInstrument = instrument === "All" || run.instrument === instrument;
         return matchesSearch && matchesStatus && matchesInstrument;
       });
 
       const instruments = [...new Set(runs.map(r => r.instrument).filter(Boolean))];
-
       const instrumentSelect = document.getElementById("instrumentFilter");
       const currentValue = instrumentSelect.value;
 
       instrumentSelect.innerHTML = '<option value="All">All instruments</option>' +
-        instruments.map(inst => `<option value="${inst}">${inst}</option>`).join('');
+        instruments.map(inst => `<option value="${escapeHTML(inst)}">${escapeHTML(inst)}</option>`).join("");
 
       if (instruments.includes(currentValue)) {
         instrumentSelect.value = currentValue;
@@ -512,33 +629,49 @@ comments: cols[19] || ""
 
       renderDashboard(filtered);
 
-      document.getElementById("runTable").innerHTML = filtered.map(run => `
-        <tr>
-          <td>${run.instrument}</td>
-          <td>${run.date}</td>
-          <td><strong>${run.batch}</strong></td>
-          <td>${run.sampleName}</td>
-          <td>${run.sampleType}</td>
-          <td>${run.experiment}</td>
-          <td>${run.samples}</td>
-          <td>${run.lcMethod}</td>
-          <td>${run.msMethod}</td>
-          <td>${run.dataFolder}</td>
-          <td><span class="badge ${statusClass(run.status)}">${run.status}</span></td>
-          <td>
-            ${run.progressText}
-            <div class="progressbar"><div class="progress-${statusClass(run.status)}" style="width:${run.progressPercent}%"></div></div>
-          </td>
-          <td>${run.estimatedEnd}</td>
-          <td>${run.operator}</td>
-          <td>${run.user}</td>
-          <td>${run.solventChange}</td>
-          <td>${run.calibration}</td>
-          <td>${run.dataSearch}</td>
-          <td>${run.comments}</td>
-        </tr>
-      `).join("");
+      const html = filtered.map((run, index) => {
+        const key = makeBatchKey(run, index);
+        const cls = statusClass(run.status);
+        const progressWidth = Math.max(0, Math.min(100, run.progressPercent || 0));
+
+        const mainRow = `
+          <tr>
+            <td>${escapeHTML(run.instrument)}</td>
+            <td>${escapeHTML(run.date || "-")}</td>
+            <td>
+              <button class="batch-button" data-key="${escapeHTML(key)}">${escapeHTML(run.batch || "Open details")}</button>
+              <div class="small-muted">Click for details</div>
+            </td>
+            <td>${escapeHTML(run.sampleName)}</td>
+            <td>${escapeHTML(run.experiment)}</td>
+            <td>${escapeHTML(run.samples)}</td>
+            <td>${escapeHTML(run.lcMethod)}</td>
+            <td>${escapeHTML(run.msMethod)}</td>
+            <td><span class="badge ${cls}">${escapeHTML(run.status)}</span></td>
+            <td>
+              ${escapeHTML(run.progressText)}
+              <div class="progressbar"><div class="progress-${cls}" style="width:${progressWidth}%"></div></div>
+            </td>
+            <td>${escapeHTML(run.estimatedEnd)}</td>
+            <td>${escapeHTML(run.user)}</td>
+            <td>${escapeHTML(run.dataFolder)}</td>
+          </tr>
+        `;
+
+        return mainRow + (openBatchKey === key ? detailsHTML(run) : "");
+      }).join("");
+
+      document.getElementById("runTable").innerHTML = html || '<tr><td colspan="13">No matching runs found.</td></tr>';
     }
+
+    document.getElementById("runTable").addEventListener("click", event => {
+      const button = event.target.closest(".batch-button");
+      if (!button) return;
+
+      const key = button.getAttribute("data-key");
+      openBatchKey = openBatchKey === key ? "" : key;
+      renderTable();
+    });
 
     document.getElementById("searchBox").addEventListener("input", renderTable);
     document.getElementById("statusFilter").addEventListener("change", renderTable);
