@@ -1,433 +1,16 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LBPlab_MassSpec_Run_Tracker</title>
-  <style>
-    :root {
-      --bg: #f6f8fb;
-      --card: #ffffff;
-      --text: #1f2937;
-      --muted: #6b7280;
-      --border: #e5e7eb;
-      --blue: #2563eb;
-      --green: #16a34a;
-      --orange: #f97316;
-      --gray: #64748b;
-      --red: #dc2626;
-    }
+from pathlib import Path
 
-    * { box-sizing: border-box; }
+original_path = Path("/mnt/data/Pasted text(2).txt")
+text = original_path.read_text(encoding="utf-8")
 
-    body {
-      margin: 0;
-      font-family: Arial, Helvetica, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-    }
+# Add Date header after Instrument
+text = text.replace(
+    "<th>Instrument</th>\n            <th>Batch</th>",
+    "<th>Instrument</th>\n            <th>Date</th>\n            <th>Batch</th>"
+)
 
-    header {
-      background: linear-gradient(135deg, #1e3a8a, #2563eb);
-      color: white;
-      padding: 28px 36px;
-    }
-
-    header h1 {
-      margin: 0 0 8px;
-      font-size: 32px;
-    }
-
-    header p {
-      margin: 0;
-      opacity: 0.9;
-    }
-
-    main {
-      padding: 24px 36px 40px;
-      max-width: 1500px;
-      margin: auto;
-    }
-
-    .instrument-status {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-
-    .status-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 18px 20px;
-      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
-      border-left: 8px solid var(--gray);
-    }
-
-    .status-card h3 {
-      margin: 0 0 8px;
-      font-size: 18px;
-    }
-
-    .status-pill {
-      display: inline-block;
-      padding: 5px 10px;
-      border-radius: 999px;
-      color: white;
-      font-size: 12px;
-      font-weight: 700;
-      margin-bottom: 8px;
-    }
-
-    .status-card p {
-      margin: 4px 0 0;
-      color: var(--muted);
-      font-size: 14px;
-    }
-
-    .machine-running { border-left-color: var(--green); }
-    .machine-idle { border-left-color: var(--blue); }
-    .machine-maintenance { border-left-color: #eab308; }
-    .machine-troubleshooting { border-left-color: var(--orange); }
-    .machine-down { border-left-color: var(--red); }
-    .machine-calibration { border-left-color: #8b5cf6; }
-    .machine-cleaning { border-left-color: #06b6d4; }
-
-    .pill-running { background: var(--green); }
-    .pill-idle { background: var(--blue); }
-    .pill-maintenance { background: #eab308; }
-    .pill-troubleshooting { background: var(--orange); }
-    .pill-down { background: var(--red); }
-    .pill-calibration { background: #8b5cf6; }
-    .pill-cleaning { background: #06b6d4; }
-    .pill-default { background: var(--gray); }
-
-    .dashboard {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 20px;
-      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
-    }
-
-    .card h3 {
-      margin: 0 0 10px;
-      font-size: 14px;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
-
-    .card .number {
-      font-size: 34px;
-      font-weight: 700;
-    }
-
-    .controls {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      align-items: center;
-      margin-bottom: 18px;
-    }
-
-    input, select {
-      padding: 10px 12px;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      font-size: 14px;
-      background: white;
-    }
-
-    input {
-      min-width: 280px;
-      flex: 1;
-    }
-
-    .table-wrap {
-      background: white;
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      overflow: auto;
-      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      min-width: 1300px;
-    }
-
-    th, td {
-      padding: 12px 14px;
-      border-bottom: 1px solid var(--border);
-      text-align: left;
-      vertical-align: top;
-      font-size: 14px;
-    }
-
-    th {
-      background: #f8fafc;
-      color: #374151;
-      position: sticky;
-      top: 0;
-      z-index: 1;
-    }
-
-    tr:hover {
-      background: #f9fafb;
-    }
-
-    .badge {
-      display: inline-block;
-      padding: 5px 10px;
-      border-radius: 999px;
-      font-weight: 700;
-      font-size: 12px;
-      color: white;
-      white-space: nowrap;
-    }
-
-    .completed { background: var(--green); }
-    .running { background: var(--orange); }
-    .next { background: var(--blue); }
-    .queued { background: var(--gray); }
-    .failed { background: var(--red); }
-
-    .progressbar {
-      height: 10px;
-      background: #e5e7eb;
-      border-radius: 999px;
-      overflow: hidden;
-      margin-top: 6px;
-      width: 140px;
-    }
-
-    .progressbar > div {
-      height: 100%;
-      transition: width 0.3s ease;
-      border-radius: 999px;
-    }
-
-    .progress-completed { background: var(--green); }
-    .progress-running { background: linear-gradient(90deg, #f59e0b, #f97316); }
-    .progress-next { background: #d1d5db; }
-    .progress-queued { background: #d1d5db; }
-    .progress-failed { background: var(--red); }
-
-    .note {
-      margin-top: 16px;
-      color: var(--muted);
-      font-size: 13px;
-    }
-  </style>
-</head>
-<body>
-  <header>
-    <h1>LBPlab_MassSpec_Run_Tracker</h1>
-    <p>Live-style dashboard for completed, running, and queued LC-MS samples</p>
-  </header>
-
-  <main>
-    <section class="instrument-status" id="instrumentStatusCards"></section>
-
-    <section class="dashboard">
-      <div class="card">
-        <h3>Completed batches</h3>
-        <div class="number" id="completedCount">0</div>
-      </div>
-      <div class="card">
-        <h3>Currently running</h3>
-        <div class="number" id="runningCount">0</div>
-      </div>
-      <div class="card">
-        <h3>In queue / next</h3>
-        <div class="number" id="queueCount">0</div>
-      </div>
-      <div class="card">
-        <h3>Total samples</h3>
-        <div class="number" id="sampleCount">0</div>
-      </div>
-    </section>
-
-    <section class="controls">
-      <input id="searchBox" type="text" placeholder="Search sample, user, operator, method, experiment..." />
-
-      <select id="instrumentFilter">
-        <option value="All">All instruments</option>
-      </select>
-
-      <select id="statusFilter">
-        <option value="All">All statuses</option>
-        <option value="Completed">Completed</option>
-        <option value="Running">Running</option>
-        <option value="Next">Next</option>
-        <option value="Queued">Queued</option>
-        <option value="Failed">Failed</option>
-      </select>
-    </section>
-
-    <section class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Instrument</th>
-            <th>Batch</th>
-            <th>Sample Name</th>
-            <th>Sample Type</th>
-            <th>Experiment</th>
-            <th>No. Samples</th>
-            <th>LC Method</th>
-            <th>MS Method</th>
-            <th>Data Folder</th>
-            <th>Status</th>
-            <th>Progress</th>
-            <th>Estimated End</th>
-            <th>Operator</th>
-            <th>User</th>
-            <th>Solvent Change</th>
-            <th>Calibration</th>
-            <th>Data Search</th>
-            <th>Comments</th>
-          </tr>
-        </thead>
-        <tbody id="runTable"></tbody>
-      </table>
-    </section>
-
-    <p class="note">
-      This webpage reads live data from your published Google Sheet and refreshes automatically every 60 seconds.
-    </p>
-  </main>
-
-  <script>
-    const sheetSources = [
-      {
-        instrument: "timsTOF",
-        url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvmDuu6qWOvoRoTYRmlYzKBaxLlUH47I0C4uyNnByi21rJYxi_UyJYAB2JiUCsLH2sVxWhHQ92M1oE/pub?output=csv"
-      },
-      {
-        instrument: "Orbitrap Eclipse",
-        url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvmDuu6qWOvoRoTYRmlYzKBaxLlUH47I0C4uyNnByi21rJYxi_UyJYAB2JiUCsLH2sVxWhHQ92M1oE/pub?gid=92196191&single=true&output=csv"
-      }
-    ];
-
-    let runs = [];
-    let instrumentStatuses = [];
-
-    const statusSheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvmDuu6qWOvoRoTYRmlYzKBaxLlUH47I0C4uyNnByi21rJYxi_UyJYAB2JiUCsLH2sVxWhHQ92M1oE/pub?gid=573698020&single=true&output=csv";
-
-    function parseCSV(text) {
-      const rows = [];
-      let row = [];
-      let value = "";
-      let inQuotes = false;
-
-      for (let i = 0; i < text.length; i++) {
-        const char = text[i];
-        const next = text[i + 1];
-
-        if (char === '"' && inQuotes && next === '"') {
-          value += '"';
-          i++;
-        } else if (char === '"') {
-          inQuotes = !inQuotes;
-        } else if (char === ',' && !inQuotes) {
-          row.push(value.trim());
-          value = "";
-        } else if ((char === String.fromCharCode(10) || char === String.fromCharCode(13)) && !inQuotes) {
-          if (value || row.length) {
-            row.push(value.trim());
-            rows.push(row);
-            row = [];
-            value = "";
-          }
-        } else {
-          value += char;
-        }
-      }
-
-      if (value || row.length) {
-        row.push(value.trim());
-        rows.push(row);
-      }
-
-      return rows;
-    }
-
-    async function loadInstrumentStatus() {
-      try {
-        const separator = statusSheetURL.includes("?") ? "&" : "?";
-        const response = await fetch(statusSheetURL + separator + "cacheBust=" + Date.now());
-        const csv = await response.text();
-        const rows = parseCSV(csv);
-
-        instrumentStatuses = rows.slice(1)
-          .filter(cols => cols.some(cell => cell && cell.trim() !== ""))
-          .map(cols => ({
-            instrument: cols[0] || "",
-            status: cols[1] || "Idle",
-            comments: cols[2] || ""
-          }));
-
-        renderInstrumentStatus();
-      } catch (error) {
-        console.error("Could not load instrument status sheet:", error);
-      }
-    }
-
-    function machineStatusClass(status) {
-      const normalized = String(status || "").toLowerCase().replaceAll(" ", "-");
-      if (["running", "idle", "maintenance", "troubleshooting", "down", "calibration", "cleaning"].includes(normalized)) {
-        return normalized;
-      }
-      return "default";
-    }
-
-    function renderInstrumentStatus() {
-      const container = document.getElementById("instrumentStatusCards");
-      if (!container) return;
-
-      container.innerHTML = instrumentStatuses.map(item => {
-        const cls = machineStatusClass(item.status);
-        return `
-          <div class="status-card machine-${cls}">
-            <h3>${item.instrument}</h3>
-            <span class="status-pill pill-${cls}">${item.status}</span>
-            <p>${item.comments || "No comments"}</p>
-          </div>
-        `;
-      }).join("");
-    }
-
-    async function loadSheetData() {
-      try {
-        const allRows = [];
-
-        for (const source of sheetSources) {
-          const separator = source.url.includes("?") ? "&" : "?";
-          const response = await fetch(source.url + separator + "cacheBust=" + Date.now());
-          const csv = await response.text();
-          const rows = parseCSV(csv);
-
-          rows.slice(1).forEach(row => {
-            row.sourceInstrument = source.instrument;
-            allRows.push(row);
-          });
-        }
-
-        runs = allRows
-          .filter(cols => cols.some(cell => cell && cell.trim() !== ""))
-          .map(cols => ({
-            instrument: cols.sourceInstrument || cols[0] || "",
+# Replace mapping block with date-aware mapping
+old_mapping = '''instrument: cols.sourceInstrument || cols[0] || "",
             batch: cols[1] || "",
             sampleName: cols[2] || "",
             sampleType: cols[3] || "",
@@ -447,107 +30,43 @@
             solventChange: cols[15] || "",
             calibration: cols[16] || "",
             dataSearch: cols[17] || "",
-            comments: cols[18] || ""
-          }));
+            comments: cols[18] || ""'''
 
-        renderTable();
-      } catch (error) {
-        console.error("Could not load Google Sheet:", error);
-        document.getElementById("runTable").innerHTML = `
-          <tr>
-            <td colspan="18">Could not load Google Sheet data. Please check that the sheet is published to web as CSV.</td>
-          </tr>
-        `;
-      }
-    }
+new_mapping = '''instrument: cols.sourceInstrument || cols[0] || "",
+            date: cols[1] || "",
+            batch: cols[2] || "",
+            sampleName: cols[3] || "",
+            sampleType: cols[4] || "",
+            experiment: cols[5] || "",
+            samples: cols[6] || "0",
+            lcMethod: cols[7] || "",
+            msMethod: cols[8] || "",
+            dataFolder: cols[9] || "",
+            status: cols[10] || "Queued",
+            progressText: cols[11] || "",
+            progressPercent: (Number(String(cols[12] || "0").replace("%", "")) <= 1)
+              ? Number(String(cols[12] || "0").replace("%", "")) * 100
+              : Number(String(cols[12] || "0").replace("%", "")),
+            estimatedEnd: cols[13] || "",
+            operator: cols[14] || "",
+            user: cols[15] || "",
+            solventChange: cols[16] || "",
+            calibration: cols[17] || "",
+            dataSearch: cols[18] || "",
+            comments: cols[19] || ""'''
 
-    const statusClass = status => {
-      const normalized = String(status || "").toLowerCase();
-      if (normalized === "completed") return "completed";
-      if (normalized === "running") return "running";
-      if (normalized === "next") return "next";
-      if (normalized === "failed") return "failed";
-      return "queued";
-    };
+text = text.replace(old_mapping, new_mapping)
 
-    const progressColor = status => {
-      const normalized = String(status || "").toLowerCase();
-      if (normalized === "completed") return "#16a34a";
-      if (normalized === "running") return "#f97316";
-      if (normalized === "failed") return "#dc2626";
-      return "#d1d5db";
-    };
+# Update colspan
+text = text.replace('colspan="18"', 'colspan="19"')
 
-    function renderDashboard(filteredRuns) {
-      document.getElementById("completedCount").textContent = filteredRuns.filter(r => r.status === "Completed").length;
-      document.getElementById("runningCount").textContent = filteredRuns.filter(r => r.status === "Running").length;
-      document.getElementById("queueCount").textContent = filteredRuns.filter(r => ["Next", "Queued"].includes(r.status)).length;
-      document.getElementById("sampleCount").textContent = filteredRuns.reduce((sum, r) => sum + Number(r.samples || 0), 0);
-    }
+# Add Date cell after instrument cell
+text = text.replace(
+    "<td>${run.instrument}</td>\n          <td><strong>${run.batch}</strong></td>",
+    "<td>${run.instrument}</td>\n          <td>${run.date}</td>\n          <td><strong>${run.batch}</strong></td>"
+)
 
-    function renderTable() {
-      const search = document.getElementById("searchBox").value.toLowerCase();
-      const status = document.getElementById("statusFilter").value;
-      const instrument = document.getElementById("instrumentFilter").value;
+output_path = Path("/mnt/data/ms-run-tracker-with-date.html")
+output_path.write_text(text, encoding="utf-8")
 
-      const filtered = runs.filter(run => {
-        const allText = Object.values(run).join(" ").toLowerCase();
-        const matchesSearch = allText.includes(search);
-        const matchesStatus = status === "All" || run.status === status;
-        const matchesInstrument = instrument === "All" || run.instrument === instrument;
-        return matchesSearch && matchesStatus && matchesInstrument;
-      });
-
-      const instruments = [...new Set(runs.map(r => r.instrument).filter(Boolean))];
-
-      const instrumentSelect = document.getElementById("instrumentFilter");
-      const currentValue = instrumentSelect.value;
-
-      instrumentSelect.innerHTML = '<option value="All">All instruments</option>' +
-        instruments.map(inst => `<option value="${inst}">${inst}</option>`).join('');
-
-      if (instruments.includes(currentValue)) {
-        instrumentSelect.value = currentValue;
-      }
-
-      renderDashboard(filtered);
-
-      document.getElementById("runTable").innerHTML = filtered.map(run => `
-        <tr>
-          <td>${run.instrument}</td>
-          <td><strong>${run.batch}</strong></td>
-          <td>${run.sampleName}</td>
-          <td>${run.sampleType}</td>
-          <td>${run.experiment}</td>
-          <td>${run.samples}</td>
-          <td>${run.lcMethod}</td>
-          <td>${run.msMethod}</td>
-          <td>${run.dataFolder}</td>
-          <td><span class="badge ${statusClass(run.status)}">${run.status}</span></td>
-          <td>
-            ${run.progressText}
-            <div class="progressbar"><div class="progress-${statusClass(run.status)}" style="width:${run.progressPercent}%"></div></div>
-          </td>
-          <td>${run.estimatedEnd}</td>
-          <td>${run.operator}</td>
-          <td>${run.user}</td>
-          <td>${run.solventChange}</td>
-          <td>${run.calibration}</td>
-          <td>${run.dataSearch}</td>
-          <td>${run.comments}</td>
-        </tr>
-      `).join("");
-    }
-
-    document.getElementById("searchBox").addEventListener("input", renderTable);
-    document.getElementById("statusFilter").addEventListener("change", renderTable);
-    document.getElementById("instrumentFilter").addEventListener("change", renderTable);
-
-    loadInstrumentStatus();
-    loadSheetData();
-    setInterval(loadInstrumentStatus, 60000);
-    setInterval(loadSheetData, 60000);
-  </script>
-</body>
-</html>
-
+print(f"Created: {output_path}")
