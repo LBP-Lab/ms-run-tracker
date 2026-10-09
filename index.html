@@ -165,7 +165,7 @@
     table {
       width: 100%;
       border-collapse: collapse;
-      min-width: 1200px;
+      min-width: 650px;
     }
 
     th, td {
@@ -294,35 +294,17 @@
 
 <body>
   <header>
-    <h1>LBPlab_MassSpec_Run_Tracker</h1>
-    <p>Click a batch name to view all run details</p>
+    <h1>LBP Lab · Mass spec tracker</h1>
+    <p>Find your samples and follow their progress</p>
     <a href="submit.html" style="display:inline-block;margin-top:16px;background:white;color:#1e3a8a;padding:10px 16px;border-radius:8px;text-decoration:none;font-weight:700">Submit samples</a>
   </header>
 
   <main>
-    <section class="instrument-status" id="instrumentStatusCards"></section>
+    <details style="margin-bottom:20px"><summary style="cursor:pointer;padding:12px">Instrument status</summary><section class="instrument-status" id="instrumentStatusCards"></section></details>
 
-    <section class="dashboard">
-      <div class="card">
-        <h3>Completed batches</h3>
-        <div class="number" id="completedCount">0</div>
-      </div>
-      <div class="card">
-        <h3>Currently running</h3>
-        <div class="number" id="runningCount">0</div>
-      </div>
-      <div class="card">
-        <h3>In queue / next</h3>
-        <div class="number" id="queueCount">0</div>
-      </div>
-      <div class="card">
-        <h3>Total samples</h3>
-        <div class="number" id="sampleCount">0</div>
-      </div>
-    </section>
-
+    <section class="card" style="margin-bottom:20px"><h2>Find your run</h2><p>Enter your name, batch number, or sample name. Open a matching batch for full details.</p></section>
     <section class="controls">
-      <input id="searchBox" type="text" placeholder="Search batch, sample, user, operator, method, experiment..." />
+      <input aria-label="Search by name or batch" id="searchBox" type="text" placeholder="Your name, batch number, or sample name…" />
 
       <select id="instrumentFilter">
         <option value="All">All instruments</option>
@@ -340,23 +322,7 @@
 
     <section class="table-wrap">
       <table>
-        <thead>
-          <tr>
-            <th>Instrument</th>
-            <th>Date</th>
-            <th>Batch</th>
-            <th>Sample Name</th>
-            <th>Experiment</th>
-            <th>No. Samples</th>
-            <th>LC Method</th>
-            <th>MS Method</th>
-            <th>Status</th>
-            <th>Progress</th>
-            <th>Estimated End</th>
-            <th>User</th>
-            <th>Data Folder</th>
-          </tr>
-        </thead>
+        <thead><tr><th>Batch / sample</th><th>Researcher</th><th>Instrument</th><th>Status / progress</th><th>Estimated end</th></tr></thead>
         <tbody id="runTable"></tbody>
       </table>
     </section>
@@ -529,7 +495,7 @@
         renderTable();
       } catch (error) {
         console.error("Could not load Google Sheet:", error);
-        document.getElementById("runTable").innerHTML = '<tr><td colspan="13">Could not load Google Sheet data.</td></tr>';
+        document.getElementById("runTable").innerHTML = '<tr><td colspan="5">Could not load Google Sheet data.</td></tr>';
       }
     }
 
@@ -547,20 +513,6 @@
       }).join("");
     }
 
-    function renderDashboard(filteredRuns) {
-      document.getElementById("completedCount").textContent =
-        filteredRuns.filter(r => r.status.toLowerCase() === "completed").length;
-
-      document.getElementById("runningCount").textContent =
-        filteredRuns.filter(r => r.status.toLowerCase() === "running").length;
-
-      document.getElementById("queueCount").textContent =
-        filteredRuns.filter(r => ["next", "queued"].includes(r.status.toLowerCase())).length;
-
-      document.getElementById("sampleCount").textContent =
-        filteredRuns.reduce((sum, r) => sum + Number(r.samples || 0), 0);
-    }
-
     function detailItem(label, value) {
       return `
         <div class="detail-item">
@@ -573,7 +525,7 @@
     function detailsHTML(run) {
       return `
         <tr class="details-row">
-          <td colspan="13">
+          <td colspan="5">
             <div class="details-panel">
               <div class="details-title">${escapeHTML(run.batch || "Run details")}</div>
               <div class="details-grid">
@@ -605,12 +557,12 @@
     }
 
     function renderTable() {
-      const search = document.getElementById("searchBox").value.toLowerCase();
+      const search = document.getElementById("searchBox").value.trim().toLowerCase();
       const status = document.getElementById("statusFilter").value;
       const instrument = document.getElementById("instrumentFilter").value;
 
       const filtered = runs.filter(run => {
-        const allText = Object.values(run).join(" ").toLowerCase();
+        const allText = [run.user,run.batch,run.sampleName].join(" ").toLowerCase();
         const matchesSearch = allText.includes(search);
         const matchesStatus = status === "All" || run.status.toLowerCase() === status.toLowerCase();
         const matchesInstrument = instrument === "All" || run.instrument === instrument;
@@ -628,41 +580,19 @@
         instrumentSelect.value = currentValue;
       }
 
-      renderDashboard(filtered);
+      if(!search.trim()){document.getElementById("runTable").innerHTML='<tr><td colspan="5" style="padding:36px;text-align:center">Search above to see your runs.</td></tr>';return;}
 
       const html = filtered.map((run, index) => {
         const key = makeBatchKey(run, index);
         const cls = statusClass(run.status);
         const progressWidth = Math.max(0, Math.min(100, run.progressPercent || 0));
 
-        const mainRow = `
-          <tr>
-            <td>${escapeHTML(run.instrument)}</td>
-            <td>${escapeHTML(run.date || "-")}</td>
-            <td>
-              <button class="batch-button" data-key="${escapeHTML(key)}">${escapeHTML(run.batch || "Open details")}</button>
-              <div class="small-muted">Click for details</div>
-            </td>
-            <td>${escapeHTML(run.sampleName)}</td>
-            <td>${escapeHTML(run.experiment)}</td>
-            <td>${escapeHTML(run.samples)}</td>
-            <td>${escapeHTML(run.lcMethod)}</td>
-            <td>${escapeHTML(run.msMethod)}</td>
-            <td><span class="badge ${cls}">${escapeHTML(run.status)}</span></td>
-            <td>
-              ${escapeHTML(run.progressText)}
-              <div class="progressbar"><div class="progress-${cls}" style="width:${progressWidth}%"></div></div>
-            </td>
-            <td>${escapeHTML(run.estimatedEnd)}</td>
-            <td>${escapeHTML(run.user)}</td>
-            <td>${escapeHTML(run.dataFolder)}</td>
-          </tr>
-        `;
+        const mainRow = `<tr><td><button class="batch-button" data-key="${escapeHTML(key)}">${escapeHTML(run.batch || "Open details")}</button><div class="small-muted">${escapeHTML(run.sampleName)}</div></td><td>${escapeHTML(run.user)}</td><td>${escapeHTML(run.instrument)}</td><td><span class="badge ${cls}">${escapeHTML(run.status)}</span><div class="small-muted">${escapeHTML(run.progressText)}</div><div class="progressbar"><div class="progress-${cls}" style="width:${progressWidth}%"></div></div></td><td>${escapeHTML(run.estimatedEnd || "—")}</td></tr>`;
 
         return mainRow + (openBatchKey === key ? detailsHTML(run) : "");
       }).join("");
 
-      document.getElementById("runTable").innerHTML = html || '<tr><td colspan="13">No matching runs found.</td></tr>';
+      document.getElementById("runTable").innerHTML = html || '<tr><td colspan="5">No matching runs found.</td></tr>';
     }
 
     document.getElementById("runTable").addEventListener("click", event => {
