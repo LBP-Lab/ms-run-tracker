@@ -300,9 +300,9 @@
   </header>
 
   <main>
-    <details style="margin-bottom:20px"><summary style="cursor:pointer;padding:12px">Instrument status</summary><section class="instrument-status" id="instrumentStatusCards"></section></details>
+    <section id="labOverview" aria-label="Lab activity"><h2 style="font-size:22px;margin-top:0">Lab activity</h2><section class="instrument-status" id="instrumentStatusCards"></section><aside class="card" style="margin-bottom:24px"><h3>Lab notices</h3><div id="labNotices" role="status">Loading instrument notices…</div><p class="small-muted" style="margin-top:12px">Before handing over samples, generate and review your plate map and preparation details.</p></aside></section>
 
-    <section class="card" style="margin-bottom:20px"><h2>Find your run</h2><p>Enter your name, batch number, or sample name. Open a matching batch for full details.</p></section>
+    <h2 style="font-size:20px;margin-bottom:8px">Find your run</h2><p style="color:var(--muted);margin-top:0">Search by name, batch number, or sample name. Click a batch to see full details.</p>
     <section class="controls">
       <input aria-label="Search by name or batch" id="searchBox" type="text" placeholder="Your name, batch number, or sample name…" />
 
@@ -320,7 +320,7 @@
       </select>
     </section>
 
-    <section class="table-wrap">
+    <h2 id="resultsHeading" style="font-size:20px">Currently running</h2><section class="table-wrap">
       <table>
         <thead><tr><th>Batch / sample</th><th>Researcher</th><th>Instrument</th><th>Status / progress</th><th>Estimated end</th></tr></thead>
         <tbody id="runTable"></tbody>
@@ -347,6 +347,7 @@
     const statusSheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvmDuu6qWOvoRoTYRmlYzKBaxLlUH47I0C4uyNnByi21rJYxi_UyJYAB2JiUCsLH2sVxWhHQ92M1oE/pub?gid=573698020&single=true&output=csv";
 
     let runs = [];
+    let runsLoaded=false, statusLoaded=false, runsError=false, statusError=false;
     let instrumentStatuses = [];
     let openBatchKey = "";
 
@@ -459,6 +460,7 @@
       try {
         const separator = statusSheetURL.includes("?") ? "&" : "?";
         const response = await fetch(statusSheetURL + separator + "cacheBust=" + Date.now());
+        if(!response.ok)throw new Error("Data source unavailable");
         const csv = await response.text();
         const rows = parseCSV(csv);
 
@@ -470,8 +472,9 @@
             comments: cols[2] || ""
           }));
 
-        renderInstrumentStatus();
+        statusLoaded=true;statusError=false;renderInstrumentStatus();
       } catch (error) {
+        statusError=true;renderInstrumentStatus();
         console.error("Could not load instrument status sheet:", error);
       }
     }
@@ -483,7 +486,8 @@
         for (const source of sheetSources) {
           const separator = source.url.includes("?") ? "&" : "?";
           const response = await fetch(source.url + separator + "cacheBust=" + Date.now());
-          const csv = await response.text();
+          if(!response.ok)throw new Error("Data source unavailable");
+        const csv = await response.text();
           const rows = parseCSV(csv);
 
           rows.slice(1)
@@ -491,26 +495,25 @@
             .forEach(cols => allRuns.push(rowToRun(cols, source.instrument)));
         }
 
-        runs = allRuns;
-        renderTable();
+        runs = allRuns;runsLoaded=true;runsError=false;
+        renderInstrumentStatus();renderTable();
       } catch (error) {
         console.error("Could not load Google Sheet:", error);
-        document.getElementById("runTable").innerHTML = '<tr><td colspan="5">Could not load Google Sheet data.</td></tr>';
+        runsError=true;renderInstrumentStatus();renderTable();
       }
     }
 
     function renderInstrumentStatus() {
-      const container = document.getElementById("instrumentStatusCards");
-      container.innerHTML = instrumentStatuses.map(item => {
-        const cls = machineStatusClass(item.status);
-        return `
-          <div class="status-card machine-${cls}">
-            <h3>${escapeHTML(item.instrument)}</h3>
-            <span class="status-pill pill-${cls}">${escapeHTML(item.status)}</span>
-            <p>${escapeHTML(item.comments || "No comments")}</p>
-          </div>
-        `;
-      }).join("");
+      const container=document.getElementById("instrumentStatusCards");
+      container.innerHTML=sheetSources.map(source=>{
+        const item=instrumentStatuses.find(x=>x.instrument.toLowerCase().includes(source.instrument.toLowerCase()) || (source.instrument==='Orbitrap Eclipse' && x.instrument.toLowerCase().includes('eclipse')));
+        const state=statusError?'Status unavailable':item?.status||(statusLoaded?'Status not listed':'Loading…');
+        const cls=machineStatusClass(state);
+        const next=runs.filter(r=>r.instrument===source.instrument&&r.status.toLowerCase()==='next');
+        return `<div class="status-card machine-${cls}"><h3>${escapeHTML(source.instrument)}</h3><span class="status-pill pill-${cls}">${escapeHTML(state)}</span><p>${escapeHTML(item?.comments||'')}</p><p style="margin-top:12px"><strong>Up next:</strong> ${runsError?'Queue unavailable':!runsLoaded?'Loading…':next.length?next.map(r=>escapeHTML(r.batch||r.sampleName||'Scheduled batch')).join(', '):'No next batch designated'}</p></div>`;
+      }).join('');
+      const notices=instrumentStatuses.filter(x=>x.comments.trim());
+      document.getElementById('labNotices').innerHTML=statusError?'Instrument notices are temporarily unavailable.':!statusLoaded?'Loading instrument notices…':notices.length?notices.map(x=>`<p style="margin:6px 0"><strong>${escapeHTML(x.instrument)}:</strong> ${escapeHTML(x.comments)}</p>`).join(''):'No current instrument notices.';
     }
 
     function detailItem(label, value) {
@@ -561,7 +564,7 @@
       const status = document.getElementById("statusFilter").value;
       const instrument = document.getElementById("instrumentFilter").value;
 
-      const filtered = runs.filter(run => {
+      let filtered = runs.filter(run => {
         const allText = [run.user,run.batch,run.sampleName].join(" ").toLowerCase();
         const matchesSearch = allText.includes(search);
         const matchesStatus = status === "All" || run.status.toLowerCase() === status.toLowerCase();
@@ -580,7 +583,12 @@
         instrumentSelect.value = currentValue;
       }
 
-      if(!search.trim()){document.getElementById("runTable").innerHTML='<tr><td colspan="5" style="padding:36px;text-align:center">Search above to see your runs.</td></tr>';return;}
+      const browsing=!search;
+      document.getElementById('labOverview').hidden=!browsing;
+      document.getElementById('resultsHeading').textContent=browsing?'Currently running':'Search results ('+filtered.length+')';
+      if(browsing)filtered=filtered.filter(r=>r.status.toLowerCase()==='running');
+      if(runsError){document.getElementById('runTable').innerHTML='<tr><td colspan="5">Run data are temporarily unavailable. Please try again shortly.</td></tr>';return;}
+      if(!runsLoaded){document.getElementById('runTable').innerHTML='<tr><td colspan="5">Loading runs…</td></tr>';return;}
 
       const html = filtered.map((run, index) => {
         const key = makeBatchKey(run, index);
@@ -592,7 +600,7 @@
         return mainRow + (openBatchKey === key ? detailsHTML(run) : "");
       }).join("");
 
-      document.getElementById("runTable").innerHTML = html || '<tr><td colspan="5">No matching runs found.</td></tr>';
+      document.getElementById("runTable").innerHTML = html || (browsing?'<tr><td colspan="5">No active runs match the selected filters. Search above to find completed or queued batches.</td></tr>':'<tr><td colspan="5">No matching runs found.</td></tr>');
     }
 
     document.getElementById("runTable").addEventListener("click", event => {
@@ -608,6 +616,7 @@
     document.getElementById("statusFilter").addEventListener("change", renderTable);
     document.getElementById("instrumentFilter").addEventListener("change", renderTable);
 
+    renderInstrumentStatus();renderTable();
     loadInstrumentStatus();
     loadSheetData();
     setInterval(loadInstrumentStatus, 60000);
